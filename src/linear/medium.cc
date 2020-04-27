@@ -1,5 +1,6 @@
 #include <complex>
 #include "medium.h"
+#include <iostream>
 
 namespace Medium {
 
@@ -77,12 +78,50 @@ namespace Medium {
     if (omega < omega_min) omega = omega_min;
     if (omega > omega_max) omega = omega_max;
     double n = gsl_spline_eval(spline_index, omega, acc_index);
+    // is this intended behaviour?
     n = index_ethanol(omega).real();
     double k = gsl_spline_eval(spline_absorption, omega, acc_absorption);
     return std::complex<double>(n, k);
   }
 
+  Interpolated_p::Interpolated_p(const std::string& filename) {
+    IO::read(filename, distance, pressure);
+    distance_min = distance.front();
+    distance_max = distance.back();
+    spline_pressure = gsl_spline_alloc(gsl_interp_linear, distance.size());
+    
+    gsl_spline_init(spline_pressure, distance.data(), pressure.data(), distance.size());
+    
+    acc_pressure = gsl_interp_accel_alloc();
+  }
 
+  Interpolated_p::Interpolated_p(const Interpolated_p& other) {
+    // copy the data that will be interpolated
+    distance = other.distance;
+    pressure = other.pressure;
+    distance_min = distance.front();
+    distance_max = distance.back();
+    
+    // create new spline interpolations
+    spline_pressure = gsl_spline_alloc(gsl_interp_linear, distance.size());
+    
+    gsl_spline_init(spline_pressure, distance.data(), pressure.data(), distance.size());
+    
+    acc_pressure = gsl_interp_accel_alloc();
+  }
+
+  Interpolated_p::~Interpolated_p() {
+    gsl_spline_free(spline_pressure);
+    gsl_interp_accel_free(acc_pressure);
+  }
+
+  double Interpolated_p::operator()(double distance) {
+    if (distance < distance_min) distance = distance_min;
+    if (distance > distance_max) distance = distance_max;
+    double p = gsl_spline_eval(spline_pressure, distance, acc_pressure);
+    // is this intended behaviour?
+    return p; 
+  }
 
   const IndexFunction select_linear_index(const std::string& name) {
     if (name.find(".dat") != std::string::npos) {
@@ -94,6 +133,20 @@ namespace Medium {
     else if (name == "air") return index_air;
     else if (name == "ethanol") return index_ethanol;
     else throw std::runtime_error("Unknown medium: " + name + "\n");
+  }
+  
+  const PressureFunction select_p_z(const std::string& name) {
+    if (name.find(".dat") != std::string::npos) {
+      return Interpolated_p(name);
+    }
+    else
+    {
+      // IN this case a constant pressure is exprected (double)
+      // Create and return lambda function
+      double pres = std::stod(name);
+      auto p = [pres](double z){return pres;};
+      return p;
+    }
   }
 
   std::complex<double> pressurize(double pressure, std::function<std::complex<double>(double)> index, double omega) {

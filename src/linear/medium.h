@@ -10,7 +10,8 @@
 namespace Medium {
 
   using IndexFunction = std::function<std::complex<double>(double)>;
-    
+  using PressureFunction = std::function<double(double)>;
+
   double omega_to_microns(double omega);
   std::complex<double> index_vacuum(double);
 
@@ -39,8 +40,24 @@ namespace Medium {
     gsl_interp_accel* acc_index;
     gsl_interp_accel* acc_absorption;
   };
-  
+	  
+  // Interpolated pressure dependency from file 
+  class Interpolated_p {
+  public:
+    Interpolated_p(const std::string& filename);
+    Interpolated_p(const Interpolated_p& other);
+    ~Interpolated_p();
+    double operator()(double distance);
+
+  private:
+    double distance_min, distance_max;
+    std::vector<double> distance, pressure;
+    gsl_spline* spline_pressure;
+    gsl_interp_accel* acc_pressure;
+  };
+
   const IndexFunction select_linear_index(const std::string& name);
+  const PressureFunction select_p_z(const std::string& name);
 
   // calculate index as a function of pressure using Lorentz-Lorent equation
   std::complex<double> pressurize(double pressure, IndexFunction index, double omega);

@@ -49,7 +49,9 @@ public:
   Array2D<double> electron_density, ionization_rate;
   
   int Ntime, Nradius, Nomega, Nkperp;
-  double vg, n2, fraction, scaling, pressure;
+  double vg, n2, fraction, scaling;
+  // double pressure;
+  std::function<double(double)> pressure;
   std::vector<std::complex<double>> index;
   Array2D<std::complex<double>> kz, coef, A;
 

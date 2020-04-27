@@ -31,7 +31,7 @@ void Driver::run(double start_distance, double stop_distance, int steps_cheap, i
   std::ostringstream ss;
   ss << "*** Runtime values ***\n";
   ss << "Started: " << timer.timestamp() << "\n";
-  ss << "z [m]        Energy [J]   Imax [W/m^2]   Rhomax [1/m^3]\n";
+  ss << "z [m]        Energy [J]   Imax [W/m^2]   Pressure[atm]   Rhomax [1/m^3]\n";
   std::cout << ss.str();
   IO::write_append("log", ss.str());
   ss.str(std::string());
@@ -128,6 +128,7 @@ void Driver::print_runtime_data() {
   ss << current_distance << "    ";
   ss << Util::energy(data.field) << "    ";
   ss << Util::max_intensity(data.field) << "      ";
+  ss << propagator.pressure(current_distance) << "      ";
   ss << Util::max_density(data.electron_density) << "\n";
 
   std::cout << ss.str();

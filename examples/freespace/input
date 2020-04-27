@@ -40,7 +40,7 @@ delay = 0
 [medium]
 type = freespace
 index = air
-pressure = 1
+pressure = p_test.dat 
 
 [kerr]
 n2 = 8e-24

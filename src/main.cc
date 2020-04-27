@@ -22,6 +22,7 @@ template <typename T> std::string type_name();
 void initialize_laser_field(Propagator& prop, Parameters::Parameters& params);
 void initialize_linear_medium(Propagator& prop, Parameters::Parameters& params);
 void initialize_results(Driver& driver, Parameters::Parameters& params);
+void initialize_pressure(Driver& driver, Parameters::Parameters& params);
 
 int main(int argc, char* argv[]) {
   if (argc < 2) {
@@ -140,6 +141,7 @@ int main(int argc, char* argv[]) {
         
       double density_of_neutrals = p.get<double>("ionization/density_of_neutrals");
       double pressure = p.get<double>("medium/pressure");
+      // prop.pressure = pressure;
       double fraction = p.get<double>("ionization/ionizing_fraction");
 
       auto ioniz = std::make_shared<TabulatedRate>(filename, density_of_neutrals, pressure,
@@ -274,9 +276,15 @@ void initialize_laser_field(Propagator& prop, Parameters::Parameters& p) {
 void initialize_linear_medium(Propagator& prop, Parameters::Parameters& p) {
   std::string type = p.get<std::string>("medium/type");
   std::string index_name = p.get<std::string>("medium/index");
-  double pressure = p.get<double>("medium/pressure");
+  std::string p_z_name = p.get<std::string>("medium/pressure"); 
+  // double pressure = p.get<double>("medium/pressure");
 
   Medium::IndexFunction index = Medium::select_linear_index(index_name);
+  Medium::PressureFunction p_z = Medium::select_p_z(p_z_name);
+  
+  // INitialize pressure for the strating distance
+  double pressure = p_z(p.get<double>("propagation/starting_distance"));
+  prop.pressure = p_z;
   double wavelength = p.get<double>("laser/wavelength");
   double omega0 = 2*Constants::pi*Constants::c / wavelength;
   auto n = index(omega0);
@@ -348,4 +356,5 @@ void initialize_results(Driver& driver, Parameters::Parameters& p) {
                                              ResultType::Cheap);
   conditionally_add<Results::MaxDensity>(driver, p, "results/max_density",
                                            ResultType::Cheap);
+
 }
