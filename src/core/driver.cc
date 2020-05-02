@@ -129,7 +129,7 @@ void Driver::print_runtime_data() {
   ss << Util::energy(data.field) << "    ";
   ss << Util::max_intensity(data.field) << "      ";
   ss << propagator.pressure(current_distance) << "      ";
-  ss << Util::max_density(data.electron_density) << "\n";
+  ss << propagator.pressure(current_distance) * Util::max_density(data.electron_density) << "\n";
 
   std::cout << ss.str();
   IO::write_append("log", ss.str());

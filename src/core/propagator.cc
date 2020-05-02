@@ -4,6 +4,7 @@
 #include "radial.h"
 #include "../util/util.h"
 #include "../linear/linear.h"
+#include "../linear/medium.h"
 #include "../util/io.h"
 #include <iostream>
 #include <iomanip>
@@ -65,7 +66,7 @@ void Propagator::initialize_linear(const Linear::Base& linear, double omega0) {
   for (int j = 0; j < Nomega; ++j) {
     index.push_back(linear.n(field.omega[j]));
   }
-  
+  indfunc = linear.n;
   std::complex<double> imagi(0, 1);
   for (int i = 0; i < Nkperp; ++i) {
     double kperp = field.kperp[i];
@@ -77,7 +78,8 @@ void Propagator::initialize_linear(const Linear::Base& linear, double omega0) {
       }
     }
   }
-  vg = linear.group_velocity(field.kperp[0], omega0);
+  omega_0 = omega0;
+  vg = linear.group_velocity(field.kperp[0], omega0, pressure(current_distance));
 
   // nonlinear coupling coefficient
   for (int i = 0; i < Nkperp; ++i) {
@@ -85,6 +87,39 @@ void Propagator::initialize_linear(const Linear::Base& linear, double omega0) {
       double kzvalue = kz(i, j).real();
       if (kzvalue > 0.0) {
         coef(i, j) = field.omega[j] / (2*Constants::epsilon_0*std::pow(Constants::c, 2)*kz(i, j));
+      }
+      else {
+        coef(i, j) = 0.0;
+      }
+    }
+  }
+}
+
+void Propagator::update_vg()
+{
+  Linear::FreeSpace obj(indfunc);
+  vg = obj.group_velocity(field.kperp[0], omega_0, pressure(current_distance));
+}
+
+void Propagator::update_kz(){
+  Linear::FreeSpace obj(indfunc);
+  std::complex<double> imagi(0, 1);
+  for (int i = 0; i < Nkperp; ++i) {
+    double kperp = field.kperp[i];
+    for (int j = 0; j < Nomega; ++j) {
+      double omega = field.omega[j];
+      kz(i, j) = obj.kz(kperp, omega, pressure(current_distance));
+    }
+  }
+}
+
+void Propagator::update_coef(){
+  double p = pressure(current_distance);
+  for (int i = 0; i < Nkperp; ++i) {
+    for (int j = 0; j < Nomega; ++j) {
+      double kzvalue = kz(i, j).real();
+      if (kzvalue > 0.0) {
+        coef(i, j) = field.omega[j] / (2*Constants::epsilon_0*std::pow(Constants::c, 2)*kz(i, j)) * p;
       }
       else {
         coef(i, j) = 0.0;
@@ -159,6 +194,9 @@ void Propagator::add_ionization(std::shared_ptr<Ionization> ioniz) {
 }
 
 void Propagator::linear_step(Radial& radial, double dz) {
+  update_kz(); 
+  update_vg();
+  update_coef(); 
   std::complex<double> imagi(0, 1);
   for (int i = 0; i < Nkperp; ++i) {
     for (int j = 0; j < Nomega; ++j) {
@@ -169,6 +207,9 @@ void Propagator::linear_step(Radial& radial, double dz) {
 }
 
 void Propagator::linear_step(std::complex<double>* A, double dz) {
+  update_kz();
+  update_vg();
+  update_coef();
   std::complex<double> imagi(0, 1);
   for (int i = 0; i < Nkperp; ++i) {
     for (int j = 0; j < Nomega; ++j) {
@@ -179,6 +220,9 @@ void Propagator::linear_step(std::complex<double>* A, double dz) {
 }
 
 void Propagator::linear_step(const std::complex<double>* A, Radial& radial, double dz) {
+  update_kz(); 
+  update_vg();
+  update_coef();
   std::complex<double> imagi(0, 1);
   for (int i = 0; i < Nkperp; ++i) {
     for (int j = 0; j < Nomega; ++j) {
@@ -245,6 +289,7 @@ void Propagator::calculate_rhs(double z, const std::complex<double>* A, std::com
   // calculate contributions from nonlinear currents Jnl(r, t)
   std::fill(std::begin(workspace2.temporal.values), std::end(workspace2.temporal.values), 0);
   for (auto& source : current_responses) {
+    source->update_pressure(pressure(current_distance));
     source->calculate_response(field.radius, field.time, field.temporal, electron_density,
                                workspace2.temporal);
   }

@@ -72,20 +72,19 @@ int main(int argc, char* argv[]) {
     
     initialize_linear_medium(prop, p);
     initialize_laser_field(prop, p);
+   
     if (p.section_exists("kerr")) {
-      double pressure = p.get<double>("medium/pressure");
       double n2 = p.get<double>("kerr/n2");
       double n0 = p.get<double>("calculated/n0");
-      prop.add_polarization(std::make_shared<Kerr>(n2, n0, pressure));
+      prop.add_polarization(std::make_shared<Kerr>(n2, n0, 1.));
     }
     else if (p.section_exists("ramankerr")) {
-      double pressure = p.get<double>("medium/pressure");
       double n2 = p.get<double>("ramankerr/n2");
       double n0 = p.get<double>("calculated/n0");
       double fraction = p.get<double>("ramankerr/fraction");
       double gamma = p.get<double>("ramankerr/gamma");
       double lambda = p.get<double>("ramankerr/lambda");
-      prop.add_polarization(std::make_shared<RamanKerr>(n2, n0, fraction, gamma, lambda, pressure));
+      prop.add_polarization(std::make_shared<RamanKerr>(n2, n0, fraction, gamma, lambda, 1.));
     }
     
     if (p.section_exists("ionization")) {
@@ -140,21 +139,19 @@ int main(int argc, char* argv[]) {
       }
         
       double density_of_neutrals = p.get<double>("ionization/density_of_neutrals");
-      double pressure = p.get<double>("medium/pressure");
-      // prop.pressure = pressure;
       double fraction = p.get<double>("ionization/ionizing_fraction");
 
-      auto ioniz = std::make_shared<TabulatedRate>(filename, density_of_neutrals, pressure,
+      auto ioniz = std::make_shared<TabulatedRate>(filename, density_of_neutrals, 1.,
                                                    fraction);
       prop.add_ionization(ioniz);
 
       double collision_time = p.get<double>("ionization/collision_time");
-      prop.add_current(std::make_shared<Plasma>(collision_time, pressure));
+      prop.add_current(std::make_shared<Plasma>(collision_time, 1.));
 
       double ionization_potential = p.get<double>("ionization/ionization_potential");
       prop.add_current(std::make_shared<NonlinearAbsorption>(ionization_potential,
                                                              density_of_neutrals,
-                                                             pressure, fraction,
+                                                             1., fraction,
                                                              prop.ionization_rate));
     }
     if (p.section_exists("argon")) {
@@ -167,11 +164,10 @@ int main(int argc, char* argv[]) {
       int Nradius = p.get<int>("space/N");
       int Ntime = p.get<int>("time/N");
       double density_of_neutrals = p.get<double>("argon/density_of_neutrals");
-      double pressure = p.get<double>("medium/pressure");
       auto argon = std::make_shared<ArgonResponse>(Nr, Nl, Nmask, filename,
                                                    ionization_box_size,
                                                    Nradius, Ntime, atomic_dt,
-                                                   density_of_neutrals*pressure);
+                                                   density_of_neutrals);
 
       // optionally set temporal filter
       if (p.key_exists("argon/filter_start_time")) {
@@ -185,13 +181,13 @@ int main(int argc, char* argv[]) {
 
       // add plasma effects
       double collision_time = p.get<double>("argon/collision_time");
-      prop.add_current(std::make_shared<Plasma>(collision_time, pressure));
+      prop.add_current(std::make_shared<Plasma>(collision_time, 1));
 
       // // add absorption from ionization
       double ionization_potential = p.get<double>("argon/ionization_potential");
       prop.add_current(std::make_shared<NonlinearAbsorption>(ionization_potential,
                                                              density_of_neutrals,
-                                                             pressure, 1,
+                                                             1, 1,
                                                              prop.ionization_rate));
     }
 
@@ -276,13 +272,11 @@ void initialize_laser_field(Propagator& prop, Parameters::Parameters& p) {
 void initialize_linear_medium(Propagator& prop, Parameters::Parameters& p) {
   std::string type = p.get<std::string>("medium/type");
   std::string index_name = p.get<std::string>("medium/index");
-  std::string p_z_name = p.get<std::string>("medium/pressure"); 
-  // double pressure = p.get<double>("medium/pressure");
-
   Medium::IndexFunction index = Medium::select_linear_index(index_name);
+  std::string p_z_name = p.get<std::string>("medium/pressure"); 
   Medium::PressureFunction p_z = Medium::select_p_z(p_z_name);
-  
-  // INitialize pressure for the strating distance
+ 
+  // Initialize pressure for the strating distance
   double pressure = p_z(p.get<double>("propagation/starting_distance"));
   prop.pressure = p_z;
   double wavelength = p.get<double>("laser/wavelength");

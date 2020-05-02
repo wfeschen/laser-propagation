@@ -13,7 +13,7 @@
 #include "../results/simulation_data.h"
 #include "../nonlinear/nonlinear_response.h"
 #include "../linear/linear.h"
-
+#include "../linear/medium.h"
 
 
 class Propagator {
@@ -27,7 +27,10 @@ public:
   void initialize_linear(const Linear::Base& linear, double wave0);
   void initialize_field(const Field::Field& field);
   void restart_from(const std::string& spectral_filename);
-
+  void set_index(Medium::IndexFunction ind);
+  void update_kz();
+  void update_vg();
+  void update_coef();
   void initialize_filters(double time_filter_min, double time_filter_max,
                           double wave_filter_min, double wave_filter_max);
 
@@ -49,10 +52,11 @@ public:
   Array2D<double> electron_density, ionization_rate;
   
   int Ntime, Nradius, Nomega, Nkperp;
-  double vg, n2, fraction, scaling;
+  double vg, n2, fraction, scaling, omega_0;
   // double pressure;
   std::function<double(double)> pressure;
   std::vector<std::complex<double>> index;
+  Medium::IndexFunction indfunc;
   Array2D<std::complex<double>> kz, coef, A;
 
   std::vector<std::shared_ptr<NonlinearResponse>> polarization_responses;

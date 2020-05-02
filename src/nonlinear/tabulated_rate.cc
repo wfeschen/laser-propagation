@@ -5,7 +5,7 @@
 
 TabulatedRate::TabulatedRate(const std::string& filename, double density_of_neutrals,
                        double pressure, double ionizing_fraction)
-  :density_of_neutrals(density_of_neutrals*pressure), ionizing_fraction(ionizing_fraction) {
+  :density_of_neutrals(density_of_neutrals), ionizing_fraction(ionizing_fraction){
   IO::read(filename, intensity_values, rate_values);
     
   // interpolation
