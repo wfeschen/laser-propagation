@@ -21,6 +21,8 @@ public:
   void calculate_electron_density(const Radial& electric_field,
                                   Array2D<double>& ionization_rate,
                                   Array2D<double>& electron_density) override;
+
+  void update_pressure(double pressure) override;
   
   void calculate_response(const std::vector<double>& radius,
                           const std::vector<double>& time,

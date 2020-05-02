@@ -25,6 +25,10 @@ ArgonResponsePool::ArgonResponsePool(int Nr, int Nl, int Nmask,
   std::fill(std::begin(temporal_filter), std::end(temporal_filter), 1.0);
 }
 
+void ArgonResponsePool::update_pressure(double pressure)
+{
+}
+
 void ArgonResponsePool::calculate_electron_density(const Radial& electric_field,
                                                   Array2D<double>& ionization_rate,
                                                   Array2D<double>& electron_density) {

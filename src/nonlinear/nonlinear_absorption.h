@@ -9,6 +9,8 @@ public:
      density_of_neutrals(density_of_neutrals*pressure),
      fraction(fraction), ionization_rate(ionization_rate) {}
 
+  void update_pressure(double) override {};
+
   void calculate_response(const std::vector<double>& radius,
                           const std::vector<double>& time,
                           const Array2D<std::complex<double>>& electric_field,

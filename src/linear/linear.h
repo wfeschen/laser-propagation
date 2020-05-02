@@ -13,7 +13,9 @@ class Base {
 public:
   Base(Medium::IndexFunction linear_index);
   virtual std::complex<double> kz(double kperp, double omega) const = 0;
+  virtual std::complex<double> kz(double kperp, double omega, double pressure) const = 0;
   virtual double group_velocity(double kperp, double omega) const;
+  virtual double group_velocity(double kperp, double omega, double p) const;
   virtual double gvd(double kperp, double omega) const;
 
   Medium::IndexFunction n;
@@ -26,6 +28,7 @@ public:
     :Base(linear_index) {}
   
   std::complex<double> kz(double kperp, double omega) const override;
+  std::complex<double> kz(double kperp, double omega, double p) const override;
 };
 
 
@@ -35,6 +38,7 @@ public:
     :Base(linear_index) {}
 
   std::complex<double> kz(double, double omega) const override;
+  std::complex<double> kz(double, double omega, double) const override;
 };
 
 
@@ -45,6 +49,7 @@ public:
     :Base(linear_index), R(radius), nclad(cladding_index), pressure(pressure) {}
 
   std::complex<double> kz(double kperp, double omega) const override;
+  std::complex<double> kz(double kperp, double omega, double) const override;
 
 private:
   double R, nclad, pressure;

@@ -8,6 +8,8 @@ public:
     R0 = (std::pow(gamma, 2)/4.0 + std::pow(lambda, 2)) / lambda;
   }
 
+  void update_pressure(double) override{}
+
   void calculate_response(const std::vector<double>& radius,
                           const std::vector<double>& time,
                           const Array2D<std::complex<double>>& electric_field,

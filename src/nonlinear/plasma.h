@@ -3,8 +3,13 @@
 class Plasma : public NonlinearResponse {
 public:
   Plasma(double collision, double pressure)
-    : collision_time(collision / pressure) {}
+    : collision_time(collision / pressure), collision_time_0(collision) {}
 
+
+  void update_pressure(double pressure) override
+  {
+    collision_time = collision_time_0 / pressure;
+  }
 
   void calculate_response(const std::vector<double>& radius,
                           const std::vector<double>& time,
@@ -27,4 +32,5 @@ public:
 
 private:
   double collision_time;
+  double collision_time_0;
 };
