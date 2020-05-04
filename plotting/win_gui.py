@@ -49,7 +49,7 @@ class Application(tk.Frame):
 
     def open_filename(self):
         input_file = filedialog.askopenfilename(initialdir=self.input_file.get(),
-                                                title='Please select an input file')
+                                                title='Please select an input file', filetypes=[("Input file", ".input")])
         if self.input_file:
             self.input_file.set(input_file)
             self.load_distances()
