@@ -20,6 +20,14 @@ double GenerateRate::adk(double intensity) const {
   return w / au_time;
 }
 
+double GenerateRate::instant_adk(double intensity) const {
+  double F = std::sqrt(2*intensity / (Constants::c*Constants::epsilon_0)) / au_field;
+  double w = E0 * C(nstar, lstar) * f(l, m);
+  w *= std::pow(2*F0/F, 2*nstar-std::abs(m)-1);
+  w *= std::exp(-2.0*F0 / (3.0*F));
+  return w / au_time;
+}
+
 double GenerateRate::mpi(double intensity) const {
   double F = std::sqrt(2*intensity / (Constants::c*Constants::epsilon_0)) / au_field;
   double nu0 = E0 / omega;

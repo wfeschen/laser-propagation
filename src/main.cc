@@ -102,6 +102,9 @@ int main(int argc, char* argv[]) {
         if (formula == "adk") {
           rate = std::bind(&GenerateRate::adk, gen, std::placeholders::_1);
         }
+        else if (formula == "instant_adk") {
+          rate = std::bind(&GenerateRate::instant_adk, gen, std::placeholders::_1);
+        }
         else if (formula == "mpi") {
           rate = std::bind(&GenerateRate::mpi, gen, std::placeholders::_1);
         }

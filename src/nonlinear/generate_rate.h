@@ -6,6 +6,7 @@ public:
   GenerateRate(double Ip, double wavelength);
 
   double adk(double intensity) const;
+  double instant_adk(double intesnity) const;
   double mpi(double intensity) const;
   double tunnel(double intensity) const;
   double yudin(double intensity) const;
