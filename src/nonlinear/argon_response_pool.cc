@@ -9,10 +9,9 @@ ArgonResponsePool::ArgonResponsePool(int Nr, int Nl, int Nmask,
                                    const std::string& filename_potentials,
                                    double ionization_box_size,
                                    int Nradius, int Nt, double atomic_dt,
-                                   double density_of_neutrals)
-  :argon(Nr, Nl, Nmask, filename_potentials, ionization_box_size),
-   Nradius(Nradius), Nt(Nt), atomic_dt(atomic_dt), density_of_neutrals(density_of_neutrals),
-   field_atomic(Nradius, Nt), dipole(Nradius, Nt), probability_free(Nradius, Nt),
+                                   double density_of_neutrals, double z, Medium::Pressure pres)
+  :argon(Nr, Nl, Nmask, filename_potentials, ionization_box_size), NonlinearResponse(pres),
+   Nradius(Nradius), Nt(Nt), atomic_dt(atomic_dt), density_of_neutrals(density_of_neutrals), density_of_neutrals_0(density_of_neutrals), field_atomic(Nradius, Nt), dipole(Nradius, Nt), probability_free(Nradius, Nt),
    dipole_linear(Nradius, Nt), local_field_atomic(Nt), local_dipole(Nt),
    local_probability_free(Nt), local_dipole_linear(Nt),
    temporal_filter(Nt) {
@@ -20,19 +19,21 @@ ArgonResponsePool::ArgonResponsePool(int Nr, int Nl, int Nmask,
   double dt = 0.1;
   double loss = 1;
   argon.find_ground_state(steps, dt, loss);
-
+  density_of_neutrals = density_of_neutrals_0 * p.get_pressure(z);
   // initialize the temporal filter to ones
   std::fill(std::begin(temporal_filter), std::end(temporal_filter), 1.0);
 }
 
-void ArgonResponsePool::update_pressure(double pressure)
+void ArgonResponsePool::update_density_of_neutrals(double z)
 {
+  double pressure = p.get_pressure(z);
+  density_of_neutrals = density_of_neutrals_0 * pressure;
 }
 
 void ArgonResponsePool::calculate_electron_density(const Radial& electric_field,
                                                   Array2D<double>& ionization_rate,
-                                                  Array2D<double>& electron_density) {
-
+                                                  Array2D<double>& electron_density, double z) {
+  update_density_of_neutrals(z);
   prepare_workers_for_electron_density();
   // both ionization and dipole moment are calculated in order to save
   // computational time
@@ -97,7 +98,7 @@ void ArgonResponsePool::calculate_response(const std::vector<double>&,
                                           const std::vector<double>& time,
                                           const Array2D<std::complex<double>>& electric_field,
                                           const Array2D<double>&,
-                                          Array2D<std::complex<double>>& response) {
+                                          Array2D<std::complex<double>>& response, double z) {
   prepare_workers_for_response();
   double field_dt = time[1] - time[0];
   double field_atomic_dt = field_dt / au_time;

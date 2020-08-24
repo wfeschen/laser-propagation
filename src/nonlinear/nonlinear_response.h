@@ -2,6 +2,7 @@
 #define NONLINEAR_RESPONSE
 
 #include "../core/array2d.h"
+#include "../linear/medium.h"
 
 // This is a base class for all nonlinear medium responses
 class NonlinearResponse {
@@ -12,12 +13,14 @@ public:
   // to (radius, time)
   // e.g. response(i,j) += func(electric_field(i,j).real());
   
-  virtual void update_pressure(double pressure) = 0;
+  NonlinearResponse(Medium::Pressure pres): p(pres){};
+  // virtual void update_pressure(double pressure) = 0;
   virtual void calculate_response(const std::vector<double>& radius,
                                   const std::vector<double>& time,
                                   const Array2D<std::complex<double>>& electric_field,
                                   const Array2D<double>& electron_density,
-                                  Array2D<std::complex<double>>& response) = 0;
+                                  Array2D<std::complex<double>>& response, double z) = 0;
+  Medium::Pressure p;
 };
 
 #endif // NONLINEAR_RESPONSE

@@ -31,7 +31,7 @@ Propagator::Propagator(int Nt, double time_min, double time_max,
 
   std::vector<double> wavelengths;
   for (auto o : field.omega) wavelengths.push_back(2*Constants::pi*Constants::c / o);
-
+  
   // set up ode solver
   system = {RHSfunction, nullptr, 2*A.vec().size(), this};
   stepper = gsl_odeiv2_step_alloc(gsl_odeiv2_step_rkf45, 2*A.vec().size());
@@ -62,17 +62,16 @@ std::string Propagator::log_grid_info() {
   return ss.str();
 }
 
-void Propagator::initialize_linear(const Linear::Base& linear, double omega0) {
+void Propagator::initialize_linear(Linear::Base& linear, double omega0) {
   for (int j = 0; j < Nomega; ++j) {
     index.push_back(linear.n(field.omega[j]));
   }
-  indfunc = linear.n;
   std::complex<double> imagi(0, 1);
   for (int i = 0; i < Nkperp; ++i) {
     double kperp = field.kperp[i];
     for (int j = 0; j < Nomega; ++j) {
       double omega = field.omega[j];
-      kz(i, j) = linear.kz(kperp, omega);
+      kz(i, j) = linear.kz(kperp, omega, current_distance);
       if (std::isnan(kz(i, j).real())) {
         std::cout << omega << " " << kperp << "\n";
       }
@@ -97,39 +96,22 @@ void Propagator::initialize_linear(const Linear::Base& linear, double omega0) {
 
 void Propagator::update_vg()
 {
-  Linear::FreeSpace obj(indfunc);
-  vg = obj.group_velocity(field.kperp[0], omega_0, pressure(current_distance));
+  vg = geometry->group_velocity(field.kperp[0], omega_0, current_distance);
 }
 
 void Propagator::update_kz(){
-  Linear::FreeSpace obj(indfunc);
   std::complex<double> imagi(0, 1);
   for (int i = 0; i < Nkperp; ++i) {
     double kperp = field.kperp[i];
     for (int j = 0; j < Nomega; ++j) {
       double omega = field.omega[j];
-      kz(i, j) = obj.kz(kperp, omega, pressure(current_distance));
+      kz(i, j) = geometry->kz(kperp, omega, current_distance);
     }
   }
 }
-
-void Propagator::update_coef(){
-  double p = pressure(current_distance);
-  for (int i = 0; i < Nkperp; ++i) {
-    for (int j = 0; j < Nomega; ++j) {
-      double kzvalue = kz(i, j).real();
-      if (kzvalue > 0.0) {
-        coef(i, j) = field.omega[j] / (2*Constants::epsilon_0*std::pow(Constants::c, 2)*kz(i, j)) * p;
-      }
-      else {
-        coef(i, j) = 0.0;
-      }
-    }
-  }
-}
-
 
 void Propagator::initialize_field(const Field::Field& Efield) {
+  
   for (int i = 0; i < Nradius; ++i) {
     for (int j = 0; j < Ntime; ++j) {
       field.rt(i, j) = Efield(current_distance, field.radius[i], field.time[j]);
@@ -193,10 +175,14 @@ void Propagator::add_ionization(std::shared_ptr<Ionization> ioniz) {
   calculate_electron_density();
 }
 
+void Propagator::add_geometry(std::shared_ptr<Linear::Base> geo)
+{
+  geometry = geo;
+}
+
 void Propagator::linear_step(Radial& radial, double dz) {
   update_kz(); 
   update_vg();
-  update_coef(); 
   std::complex<double> imagi(0, 1);
   for (int i = 0; i < Nkperp; ++i) {
     for (int j = 0; j < Nomega; ++j) {
@@ -206,10 +192,10 @@ void Propagator::linear_step(Radial& radial, double dz) {
   }
 }
 
+
 void Propagator::linear_step(std::complex<double>* A, double dz) {
   update_kz();
   update_vg();
-  update_coef();
   std::complex<double> imagi(0, 1);
   for (int i = 0; i < Nkperp; ++i) {
     for (int j = 0; j < Nomega; ++j) {
@@ -222,7 +208,6 @@ void Propagator::linear_step(std::complex<double>* A, double dz) {
 void Propagator::linear_step(const std::complex<double>* A, Radial& radial, double dz) {
   update_kz(); 
   update_vg();
-  update_coef();
   std::complex<double> imagi(0, 1);
   for (int i = 0; i < Nkperp; ++i) {
     for (int j = 0; j < Nomega; ++j) {
@@ -235,25 +220,21 @@ void Propagator::linear_step(const std::complex<double>* A, Radial& radial, doub
 void Propagator::nonlinear_step(double& z, double z_end) {
   current_distance = z;
   double last_step = 0;
-
-  while (z < z_end) {
+  while (z < z_end){
     int status = gsl_odeiv2_evolve_apply(evolve, control, stepper,
                                          &system,
                                          &z, z_end,
                                          &step,
                                          reinterpret_cast<double*>(A.get_data_ptr()));
-
     if (status != GSL_SUCCESS) {
       throw std::runtime_error("gsl_ode error: " + std::to_string(status));
     }
 
     last_step = z - current_distance;
     current_distance = z;
-
     // linearly propagate spectral field
     linear_step(A.get_data_ptr(), last_step);
   }
-
   // copy solver's A to the field used for calculating observables
   field.spectral.values = A.values;
   field.transform_to_temporal();
@@ -262,7 +243,7 @@ void Propagator::nonlinear_step(double& z, double z_end) {
 
 void Propagator::calculate_electron_density() {
   if (ionization) {
-    ionization->calculate_electron_density(field, ionization_rate, electron_density);
+    ionization->calculate_electron_density(field, ionization_rate, electron_density, current_distance);
   }
 }
 
@@ -281,7 +262,7 @@ void Propagator::calculate_rhs(double z, const std::complex<double>* A, std::com
   std::fill(std::begin(workspace1.temporal.values), std::end(workspace1.temporal.values), 0);
   for (auto& source : polarization_responses) {
     source->calculate_response(field.radius, field.time, field.temporal, electron_density,
-                               workspace1.temporal);
+                               workspace1.temporal, current_distance);
   }
   // transform Pnl(r, t) -> Pnl(r, omega)
   workspace1.backward_fft();
@@ -289,9 +270,9 @@ void Propagator::calculate_rhs(double z, const std::complex<double>* A, std::com
   // calculate contributions from nonlinear currents Jnl(r, t)
   std::fill(std::begin(workspace2.temporal.values), std::end(workspace2.temporal.values), 0);
   for (auto& source : current_responses) {
-    source->update_pressure(pressure(current_distance));
+    // source->update_pressure(pressure(current_distance));
     source->calculate_response(field.radius, field.time, field.temporal, electron_density,
-                               workspace2.temporal);
+                               workspace2.temporal, current_distance);
   }
   // transform Jnl(r, t) -> Jnl(r, omega)
   workspace2.backward_fft();

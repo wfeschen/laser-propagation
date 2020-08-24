@@ -123,6 +123,14 @@ namespace Medium {
     return p; 
   }
 
+  void Pressure::set_pz(PressureFunction p){
+    pz = p;
+  }
+
+  double Pressure::get_pressure(double z){
+     return pz(z);
+  }
+
   const IndexFunction select_linear_index(const std::string& name) {
     if (name.find(".dat") != std::string::npos) {
       return Interpolated(name);
@@ -135,7 +143,7 @@ namespace Medium {
     else throw std::runtime_error("Unknown medium: " + name + "\n");
   }
   
-  const PressureFunction select_p_z(const std::string& name) {
+  const PressureFunction select_p_z(std::string& name) {
     if (name.find(".dat") != std::string::npos) {
       return Interpolated_p(name);
     }

@@ -3,6 +3,7 @@
 #include "util/io.h"
 #include "core/radial.h"
 #include "nonlinear/argon_response.h"
+#include "linear/medium.h"
 
 int main(int argc, char* argv[]) {
   if (argc < 3) {
@@ -43,9 +44,14 @@ int main(int argc, char* argv[]) {
     int ionization_box_size = p.get<int>("argon/ionization_box_size");
     double atomic_dt = p.get<double>("argon/step_size");
     double density_of_neutrals = p.get<double>("argon/density_of_neutrals");
-    double pressure = p.get<double>("medium/pressure");
+    // double pressure = p.get<double>("medium/pressure");
+    std::string p_z_name = p.get<std::string>("Medium/pressure");
+    Medium::PressureFunction p_z = Medium::select_p_z(p_z_name);
+    Medium::Pressure test;
+    test.set_pz(p_z);
+
     ArgonResponse argon(Nr, Nl, Nmask, filename, ionization_box_size, 1, Ntime, atomic_dt,
-                        density_of_neutrals*pressure);
+                        density_of_neutrals, test);
 
     // ionization
     Array2D<double> ionization_rate(1, Ntime);

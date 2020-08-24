@@ -5,6 +5,7 @@
 #include "nonlinear_response.h"
 #include "argon.h"
 #include "../core/array2d.h"
+#include "../linear/medium.h"
 
 class ArgonResponse : public Ionization, public NonlinearResponse {
 public:
@@ -12,17 +13,17 @@ public:
                 const std::string& filename_potentials,
                 double ionization_box_size,
                 int Nradius, int Nt, double atomic_dt,
-                double density_of_neutrals);
+                double density_of_neutrals, Medium::Pressure pres);
 
+  void update_density_of_neutrals(double z);
   void calculate_electron_density(const Radial& electric_field,
                                   Array2D<double>& ionization_rate,
-                                  Array2D<double>& electron_density) override;
-  void update_pressure(double) override;
+                                  Array2D<double>& electron_density, double z) override;
   void calculate_response(const std::vector<double>& radius,
                           const std::vector<double>& time,
                           const Array2D<std::complex<double>>& electric_field,
                           const Array2D<double>& electron_density,
-                          Array2D<std::complex<double>>& response) override;
+                          Array2D<std::complex<double>>& response, double z) override;
 
 
   void save_wavefunction(const std::string& filename);
@@ -31,7 +32,7 @@ public:
 private:
   Argon argon;
   int Nradius, Nt;
-  double atomic_dt, density_of_neutrals;
+  double atomic_dt, density_of_neutrals, density_of_neutrals_0;
   const double au_efield = 514220670700.0;
   const double au_dipole = 8.47835309e-30;
   const double au_time = 2.418884326509e-17;

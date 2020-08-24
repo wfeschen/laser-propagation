@@ -3,15 +3,16 @@
 #include "../core/radial.h"
 #include "../util/io.h"
 #include "../util/constants.h"
+#include "../linear/medium.h"
 
 ArgonResponse::ArgonResponse(int Nr, int Nl, int Nmask,
                              const std::string& filename_potentials,
                              double ionization_box_size,
                              int Nradius, int Nt, double atomic_dt,
-                             double density_of_neutrals)
-  :argon(Nr, Nl, Nmask, filename_potentials, ionization_box_size),
-   Nradius(Nradius), Nt(Nt), atomic_dt(atomic_dt), density_of_neutrals(density_of_neutrals),
-   field_atomic(Nt), probability_free(Nt), dipole_atomic(Nt),
+                             double density_of_neutrals, Medium::Pressure p)
+  :argon(Nr, Nl, Nmask, filename_potentials, ionization_box_size), NonlinearResponse(p),
+   Nradius(Nradius), Nt(Nt), atomic_dt(atomic_dt), density_of_neutrals(0),
+   density_of_neutrals_0(density_of_neutrals), field_atomic(Nt), probability_free(Nt), dipole_atomic(Nt),
    dipole(Nradius, Nt), temporal_filter(Nt) {
   int steps = 3000;
   double dt = 0.1;
@@ -22,14 +23,17 @@ ArgonResponse::ArgonResponse(int Nr, int Nl, int Nmask,
   std::fill(std::begin(temporal_filter), std::end(temporal_filter), 1.0);
 }
 
-void ArgonResponse::update_pressure(double){
+void ArgonResponse::update_density_of_neutrals(double z)
+{
+   density_of_neutrals = p.get_pressure(z) * density_of_neutrals_0;
 }
 
 void ArgonResponse::calculate_electron_density(const Radial& electric_field,
                                                Array2D<double>& ionization_rate,
-                                               Array2D<double>& electron_density) {
+                                               Array2D<double>& electron_density, double z) {
   // both ionization and dipole moment are calculated in order to save
   // computational time
+  update_density_of_neutrals(z);
   double field_dt = electric_field.time[1] - electric_field.time[0];
   double field_atomic_dt = field_dt / au_time;
   
@@ -70,7 +74,7 @@ void ArgonResponse::calculate_response(const std::vector<double>& radius,
                                        const std::vector<double>& time,
                                        const Array2D<std::complex<double>>& electric_field,
                                        const Array2D<double>&,
-                                       Array2D<std::complex<double>>& response) {
+                                       Array2D<std::complex<double>>& response, double z) {
   double field_dt = time[1] - time[0];
   double field_atomic_dt = field_dt / au_time;
 

@@ -57,11 +57,18 @@ namespace Medium {
   };
 
   const IndexFunction select_linear_index(const std::string& name);
-  const PressureFunction select_p_z(const std::string& name);
+  const PressureFunction select_p_z(std::string& name);
 
   // calculate index as a function of pressure using Lorentz-Lorent equation
   std::complex<double> pressurize(double pressure, IndexFunction index, double omega);
 
+  class Pressure{
+  public:
+    void set_pz(PressureFunction p);
+    double get_pressure(double z);
+  private:
+    PressureFunction pz;
+  };
 }
 
 #endif // MEDIUM_H_

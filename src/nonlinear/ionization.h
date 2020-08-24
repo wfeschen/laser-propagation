@@ -11,7 +11,7 @@ class Ionization {
 public:
   virtual void calculate_electron_density(const Radial& electric_field,
                                           Array2D<double>& ionization_rate,
-                                          Array2D<double>& electron_density) = 0;
+                                          Array2D<double>& electron_density, double z) = 0;
 };
 
 #endif // IONIZATION_H_

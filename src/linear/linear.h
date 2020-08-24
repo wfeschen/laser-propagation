@@ -11,45 +11,41 @@ namespace Linear {
   
 class Base {
 public:
-  Base(Medium::IndexFunction linear_index);
-  virtual std::complex<double> kz(double kperp, double omega) const = 0;
-  virtual std::complex<double> kz(double kperp, double omega, double pressure) const = 0;
-  virtual double group_velocity(double kperp, double omega) const;
-  virtual double group_velocity(double kperp, double omega, double p) const;
-  virtual double gvd(double kperp, double omega) const;
+  Base(Medium::IndexFunction linear_index, Medium::Pressure pres);
+  virtual std::complex<double> kz(double kperp, double omega, double z) = 0;
+  virtual double group_velocity(double kperp, double omega, double z);
+  virtual double gvd(double kperp, double omega, double z);
 
   Medium::IndexFunction n;
+  Medium::Pressure p;
 };
 
 
 class FreeSpace : public Base {
 public:
-  FreeSpace(Medium::IndexFunction linear_index)
-    :Base(linear_index) {}
+  FreeSpace(Medium::IndexFunction linear_index, Medium::Pressure pres)
+    :Base(linear_index, pres) {}
   
-  std::complex<double> kz(double kperp, double omega) const override;
-  std::complex<double> kz(double kperp, double omega, double p) const override;
+  std::complex<double> kz(double kperp, double omega, double z) override;
 };
 
 
 class DiffractionLess : public Base {
 public:
-  DiffractionLess(Medium::IndexFunction linear_index)
-    :Base(linear_index) {}
+  DiffractionLess(Medium::IndexFunction linear_index, Medium::Pressure pres)
+    :Base(linear_index, pres) {}
 
-  std::complex<double> kz(double, double omega) const override;
-  std::complex<double> kz(double, double omega, double) const override;
+  std::complex<double> kz(double, double omega, double z) override;
 };
 
 
 class Capillary : public Base {
 public:
   Capillary(Medium::IndexFunction linear_index, double radius, double cladding_index,
-	    double pressure)
-    :Base(linear_index), R(radius), nclad(cladding_index), pressure(pressure) {}
+	    Medium::Pressure pres)
+    :Base(linear_index, pres), R(radius), nclad(cladding_index) {}
 
-  std::complex<double> kz(double kperp, double omega) const override;
-  std::complex<double> kz(double kperp, double omega, double) const override;
+  std::complex<double> kz(double kperp, double omega, double z) override;
 
 private:
   double R, nclad, pressure;

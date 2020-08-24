@@ -72,11 +72,19 @@ int main(int argc, char* argv[]) {
     
     initialize_linear_medium(prop, p);
     initialize_laser_field(prop, p);
-   
+  
+    
+    std::string p_z_name = p.get<std::string>("medium/pressure"); 
+    Medium::PressureFunction p_z = Medium::select_p_z(p_z_name);
+
+     // New code
+    Medium::Pressure pres;
+    pres.set_pz(p_z);
+    
     if (p.section_exists("kerr")) {
       double n2 = p.get<double>("kerr/n2");
       double n0 = p.get<double>("calculated/n0");
-      prop.add_polarization(std::make_shared<Kerr>(n2, n0, 1.));
+      prop.add_polarization(std::make_shared<Kerr>(n2, n0, starting_distance, pres));
     }
     else if (p.section_exists("ramankerr")) {
       double n2 = p.get<double>("ramankerr/n2");
@@ -84,7 +92,7 @@ int main(int argc, char* argv[]) {
       double fraction = p.get<double>("ramankerr/fraction");
       double gamma = p.get<double>("ramankerr/gamma");
       double lambda = p.get<double>("ramankerr/lambda");
-      prop.add_polarization(std::make_shared<RamanKerr>(n2, n0, fraction, gamma, lambda, 1.));
+      prop.add_polarization(std::make_shared<RamanKerr>(n2, n0, fraction, gamma, lambda, starting_distance, pres));
     }
     
     if (p.section_exists("ionization")) {
@@ -144,18 +152,19 @@ int main(int argc, char* argv[]) {
       double density_of_neutrals = p.get<double>("ionization/density_of_neutrals");
       double fraction = p.get<double>("ionization/ionizing_fraction");
 
-      auto ioniz = std::make_shared<TabulatedRate>(filename, density_of_neutrals, 1.,
-                                                   fraction);
+      // I changed here some code
+      auto ioniz = std::make_shared<TabulatedRate>(filename, density_of_neutrals, starting_distance,
+                                                   fraction, pres);
       prop.add_ionization(ioniz);
 
       double collision_time = p.get<double>("ionization/collision_time");
-      prop.add_current(std::make_shared<Plasma>(collision_time, 1.));
+      prop.add_current(std::make_shared<Plasma>(collision_time, starting_distance, pres));
 
       double ionization_potential = p.get<double>("ionization/ionization_potential");
       prop.add_current(std::make_shared<NonlinearAbsorption>(ionization_potential,
                                                              density_of_neutrals,
-                                                             1., fraction,
-                                                             prop.ionization_rate));
+                                                             starting_distance, fraction,
+                                                             prop.ionization_rate, pres));
     }
     if (p.section_exists("argon")) {
       int Nr = p.get<int>("argon/Nr");
@@ -170,7 +179,7 @@ int main(int argc, char* argv[]) {
       auto argon = std::make_shared<ArgonResponse>(Nr, Nl, Nmask, filename,
                                                    ionization_box_size,
                                                    Nradius, Ntime, atomic_dt,
-                                                   density_of_neutrals);
+                                                   density_of_neutrals, pres);
 
       // optionally set temporal filter
       if (p.key_exists("argon/filter_start_time")) {
@@ -184,14 +193,14 @@ int main(int argc, char* argv[]) {
 
       // add plasma effects
       double collision_time = p.get<double>("argon/collision_time");
-      prop.add_current(std::make_shared<Plasma>(collision_time, 1));
+      prop.add_current(std::make_shared<Plasma>(collision_time, starting_distance, pres));
 
       // // add absorption from ionization
       double ionization_potential = p.get<double>("argon/ionization_potential");
       prop.add_current(std::make_shared<NonlinearAbsorption>(ionization_potential,
                                                              density_of_neutrals,
-                                                             1, 1,
-                                                             prop.ionization_rate));
+                                                             starting_distance, 1,
+                                                             prop.ionization_rate, pres));
     }
 
     Driver driver(prop);
@@ -278,36 +287,45 @@ void initialize_linear_medium(Propagator& prop, Parameters::Parameters& p) {
   Medium::IndexFunction index = Medium::select_linear_index(index_name);
   std::string p_z_name = p.get<std::string>("medium/pressure"); 
   Medium::PressureFunction p_z = Medium::select_p_z(p_z_name);
- 
-  // Initialize pressure for the strating distance
-  double pressure = p_z(p.get<double>("propagation/starting_distance"));
+
+  // New code
+  Medium::Pressure pres;
+  pres.set_pz(p_z);
+
   prop.pressure = p_z;
+
+  // Initialize pressure for the strating distance
+  //double pressure = p_z(p.get<double>("propagation/starting_distance"));
   double wavelength = p.get<double>("laser/wavelength");
   double omega0 = 2*Constants::pi*Constants::c / wavelength;
   auto n = index(omega0);
   p.set("calculated/n0", n.real());
+  double starting_distance = p.get<double>("propagation/starting_distance");
   
   if (type == "capillary") {
     double radius_max = p.get<double>("space/radius_max");
     double cladding = p.get<double>("capillary/cladding");
-    Linear::Capillary linear(index, radius_max, cladding, pressure);
+    Linear::Capillary linear(index, radius_max, cladding, pres);
+    prop.add_geometry(std::make_shared<Linear::Capillary>(index, radius_max, cladding, pres));
     prop.initialize_linear(linear, omega0);
 
-    double gvd = linear.gvd(0, omega0);
+    double gvd = linear.gvd(0, omega0, starting_distance);
     p.set("calculated/gvd", gvd);
   }
   else if (type == "freespace") {
-    Linear::FreeSpace linear(index);
+    Linear::FreeSpace linear(index, pres);
+    prop.add_geometry(std::make_shared<Linear::FreeSpace>(index, pres));
     prop.initialize_linear(linear, omega0);
     
-    double gvd = linear.gvd(0, omega0);
+    double gvd = linear.gvd(0, omega0, starting_distance);
     p.set("calculated/gvd", gvd);
   }
   else if (type == "diffractionless") {
-    Linear::DiffractionLess linear(index);
+    Linear::DiffractionLess linear(index, pres);
+    prop.add_geometry(std::make_shared<Linear::DiffractionLess>(index, pres));
     prop.initialize_linear(linear, omega0);
 
-    double gvd = linear.gvd(0, omega0);
+    double gvd = linear.gvd(0, omega0, starting_distance);
     p.set("calculated/gvd", gvd);
   }
   

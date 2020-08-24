@@ -2,12 +2,15 @@
 
 class Plasma : public NonlinearResponse {
 public:
-  Plasma(double collision, double pressure)
-    : collision_time(collision / pressure), collision_time_0(collision) {}
+  Plasma(double collision, double z, Medium::Pressure pres)
+    :NonlinearResponse(pres), collision_time(0), collision_time_0(collision) {
+    collision_time = collision_time_0 / pres.get_pressure(z);
+    }
 
 
-  void update_pressure(double pressure) override
+  void update_collision_time(double z) 
   {
+    double pressure = p.get_pressure(z);
     collision_time = collision_time_0 / pressure;
   }
 
@@ -15,10 +18,11 @@ public:
                           const std::vector<double>& time,
                           const Array2D<std::complex<double>>& electric_field,
                           const Array2D<double>& electron_density,
-                          Array2D<std::complex<double>>& response) override {
+                          Array2D<std::complex<double>>& response, double z) override {
     // integrate dJ/dt + J(t)/tau_c = e^2/m * rho(t) E(t)
     // using the exponential time differencing method:
     // S.M. Cox, P.C. Matthews, J. Comp. Phys. 176, 430 (2002)
+    update_collision_time(z);
     double dt = time[1] - time[0];
     double exp = std::exp(-dt / collision_time);
     double eta = dt * std::pow(Constants::e, 2) / (2 * Constants::m_e);

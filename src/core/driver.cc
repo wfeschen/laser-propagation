@@ -59,13 +59,12 @@ void Driver::run(double start_distance, double stop_distance, int steps_cheap, i
   notify_once();
   notify_cheap();
   notify_expensive();
-
+  
   // advance the simulation forward
   for (std::size_t i = 1; i < distances.size(); ++i) {
     current_step = i;
     double z_next = distances[i];
     propagator.nonlinear_step(current_distance, z_next);
-
     // check if distance propagated is near to an interval where a
     // cheap or expensive diagnostic should be performed
     if (std::abs(std::remainder(current_distance-start_distance, dz_cheap)) < 1e-6) {
@@ -74,7 +73,6 @@ void Driver::run(double start_distance, double stop_distance, int steps_cheap, i
     if (std::abs(std::remainder(current_distance-start_distance, dz_expensive)) < 1e-6) {
       notify_expensive();
     }
-        
     print_runtime_data();
   }
 
@@ -130,7 +128,6 @@ void Driver::print_runtime_data() {
   ss << Util::max_intensity(data.field) << "      ";
   ss << propagator.pressure(current_distance) << "      ";
   ss << propagator.pressure(current_distance) * Util::max_density(data.electron_density) << "\n";
-
   std::cout << ss.str();
   IO::write_append("log", ss.str());
 }
