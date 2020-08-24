@@ -79,7 +79,6 @@ namespace Medium {
     if (omega > omega_max) omega = omega_max;
     double n = gsl_spline_eval(spline_index, omega, acc_index);
     // is this intended behaviour?
-    n = index_ethanol(omega).real();
     double k = gsl_spline_eval(spline_absorption, omega, acc_absorption);
     return std::complex<double>(n, k);
   }
