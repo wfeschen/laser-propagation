@@ -24,6 +24,13 @@ namespace Medium {
     return 1 + 6.432135e-5 + 2.8606021e-2 / (144 - std::pow(microns, -2));
   }
 
+  std::complex<double> index_helium(double omega) 
+  {
+    // Refractive index of helium, Mansfield and Peck, 1969, 0.5um - 2 um.
+    double microns = omega_to_microns(omega);
+    return 1 + 0.01470091 / (423.98 - std::pow(microns, -2));
+  }
+
   std::complex<double> index_ethanol(double omega) {
     double microns = omega_to_microns(omega);
     std::complex<double> gamma(0, 0.7); // for removing singularity at 3 microns
@@ -136,6 +143,7 @@ namespace Medium {
     }
   
     if (name == "vacuum") return index_vacuum;
+    else if (name == "helium") return index_helium;
     else if (name == "argon") return index_argon;
     else if (name == "air") return index_air;
     else if (name == "ethanol") return index_ethanol;

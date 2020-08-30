@@ -21,6 +21,8 @@ namespace Medium {
   // index of argon at 15 C, 1 atm
   std::complex<double> index_argon(double omega);
 
+  std::complex<double> index_helium(double omega);
+
   // index of ethanol at 15 C
   std::complex<double> index_ethanol(double omega);
 
