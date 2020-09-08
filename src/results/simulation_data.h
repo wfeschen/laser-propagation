@@ -9,6 +9,7 @@ class Propagator;
 struct SimulationData {
   const Radial& field;
   const Array2D<double>& electron_density;
+  const double pressure;
   const Propagator& propagator;
 };
 
