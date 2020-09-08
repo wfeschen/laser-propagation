@@ -301,7 +301,8 @@ void Propagator::calculate_rhs(double z, const std::complex<double>* A, std::com
 
 
 SimulationData Propagator::get_data() {
-  SimulationData data = {field, electron_density, *this};
+  // SimulationData data = {field, electron_density, *this};
+  SimulationData data = {field, electron_density, pressure(current_distance), *this}; 
   return data;
 }
 

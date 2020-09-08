@@ -336,6 +336,7 @@ void initialize_linear_medium(Propagator& prop, Parameters::Parameters& p) {
 
 template <class T>
 void conditionally_add(Driver& driver, Parameters::Parameters& p, const std::string& name, ResultType result_type) {
+  std::cout << name << " " << p.key_exists(name) << std::endl;
   if (p.key_exists(name)) {
     std::string filename = p.get<std::string>(name);
     driver.add_result(std::make_unique<T>(filename), result_type);
@@ -367,6 +368,7 @@ void initialize_results(Driver& driver, Parameters::Parameters& p) {
 
   // Add cheaper results
   conditionally_add<Results::Energy>(driver, p, "results/energy", ResultType::Cheap);
+  conditionally_add<Results::Pressure>(driver, p, "results/pressure", ResultType::Cheap);
   conditionally_add<Results::MaxIntensity>(driver, p, "results/max_intensity",
                                              ResultType::Cheap);
   conditionally_add<Results::MaxDensity>(driver, p, "results/max_density",
