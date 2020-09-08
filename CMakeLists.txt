@@ -29,6 +29,7 @@ add_executable(main.out
   src/results/coordinates.cc
   src/results/max_density.cc
   src/results/electron_density.cc
+  src/results/pressure.cc
   src/nonlinear/argon.cc
   src/nonlinear/argon_response.cc
   )
