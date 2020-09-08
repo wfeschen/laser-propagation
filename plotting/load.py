@@ -86,6 +86,13 @@ class Results:
         return z, energies
 
 
+    def pressure(self):
+        """Returns the distances and pressure values along propagation"""
+        z, pressure = load(join(self.folder, self.config['results/pressure']))
+        d_o_n = self.config["ionization/density_of_neutrals"] 
+        return z, pressure, d_o_n 
+
+
     def max_intensity(self):
         """Returns the distances and maximum intensity values along propagation"""
         z, maxI = load(join(self.folder, self.config['results/max_intensity']))

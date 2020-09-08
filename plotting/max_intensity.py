@@ -13,7 +13,7 @@ def plot(input_file):
 
     ax.set_xlabel('distance [cm]')
     ax.set_ylabel('intensity [W/m^2]')
-    ax.set_yscale('log')
+    # ax.set_yscale('log')
     
     fig.tight_layout()
 

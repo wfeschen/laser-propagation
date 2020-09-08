@@ -127,7 +127,16 @@ class Application(tk.Frame):
         self.max_density['command'] = lambda: self.launch_script('max_density.py',
                                                                  self.input_file.get())
         self.max_density.grid(row=4, column=2)
+        
+        self.pressure = ttk.Button(self.bottom, text='Pressure')
+        self.pressure['command'] = lambda: self.launch_script('pressure.py',
+                                                                 self.input_file.get())
+        self.pressure.grid(row=5, column=2)
 
+        self.ion_frac = ttk.Button(self.bottom, text='Ion. Frac.')
+        self.ion_frac['command'] = lambda: self.launch_script('ion_frac.py',
+                                                                 self.input_file.get())
+        self.ion_frac.grid(row=6, column=2)
 
     def launch_script(self, name, *args):
         if not self.input_file.get():
